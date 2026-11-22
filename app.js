@@ -6,9 +6,7 @@
   "use strict";
 
   // ===== 設定 =====
-  // Worker のエンドポイント。空文字なら送信せずローカル完結（フロント完結版）。
-  // 研修版：回答ログは保存しない（どこにも送信しない）。
-  const SUBMIT_ENDPOINT = "";
+  // 研修版：回答はどこにも送信・保存しない（送信処理は削除済み）。
 
   // ===== 状態 =====
   let DATA = null;        // questions.json
@@ -312,77 +310,16 @@
       cardEl.classList.remove("turn"); void cardEl.offsetWidth; cardEl.classList.add("turn");
       Array.prototype.forEach.call(dotsEl.children,(d,k)=>d.classList.toggle("on",k===i));
       const poly=cardEl.querySelector("#dpoly"); if(poly) setTimeout(()=>poly.classList.add("show"),300);
-      nextEl.textContent = i<cards.length-1 ? "次の発見へ →" : "結果に納得できるか答える →";
+      nextEl.textContent = i<cards.length-1 ? "次の発見へ →" : "終える";
     }
-    nextEl.onclick=function(){ if(i<cards.length-1){ i++; renderCard(); } else { show("confirm"); } };
+    // 研修版：回答を送信しないので、確認画面は使わず完了画面へ進む。
+    nextEl.onclick=function(){ if(i<cards.length-1){ i++; renderCard(); } else { show("complete"); } };
     renderCard();
-  }
-
-  // ===== 確認画面・送信 =====
-  function bindConfirm() {
-    $("#confirm-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const agreementEl = document.querySelector('input[name="agreement"]:checked');
-      const agreement = agreementEl ? parseInt(agreementEl.value, 10) : null;
-      const freeText = $("#free-text").value.trim();
-
-      const payload = buildPayload(agreement, freeText);
-      submit(payload);
-    });
-  }
-
-  function buildPayload(agreement, freeText) {
-    const est2 = estResult.est2, ex = estResult.extras;
-    const blocks = { A:{ scenario:"single_no_plan", answers:[] }, B:{ scenario:"married_one_child", answers:[] } };
-    answers.forEach(function(a){ if (a.scenario === "A") blocks.A.answers.push(a); else if (a.scenario === "B") blocks.B.answers.push(a); });
-    const firstScn = SEQUENCE.find(function(q){ return q.type==="main"; }).scenario;
-    return {
-      session_id: sessionId,
-      timestamp: new Date().toISOString(),
-      framing: META.framing,
-      demographics: demographics,
-      scenario_order: firstScn==="A" ? ["single_no_plan","married_one_child"] : ["married_one_child","single_no_plan"],
-      question_order: SEQUENCE.map(function(q){ return q.id; }),
-      blocks: blocks,
-      answers: answers,
-      estimate: {
-        method: "pooled_binary_logit_ridge_interaction",
-        beta_A: est2.beta_A, gamma: est2.gamma,
-        mrs_A_manyen: est2.mrs_A_manyen, mrs_B_manyen: est2.mrs_B_manyen,
-        delta_wtp_manyen: est2.delta_wtp_manyen,
-        importance_rank_A: est2.importance_rank_A, importance_rank_B: est2.importance_rank_B,
-        scale_diff: est2.scale_diff, fallback_constrained: est2.fallback_constrained, converged: est2.converged
-      },
-      counts: ex.counts,
-      decisive: ex.decisive,
-      quality: Object.assign({}, ex.quality, { scale_diff: est2.scale_diff, fallback_constrained: est2.fallback_constrained }),
-      feedback: { agreement: agreement, free_text: freeText },
-      app_version: "0.3"
-    };
-  }
-
-  function submit(payload) {
-    show("complete");
-    if (!SUBMIT_ENDPOINT) {
-      // フロント完結版：送信先未設定。ローカルにのみ保持し、ログを表示できるようにする。
-      $("#complete-note").textContent = "回答はこの端末の中だけで計算し、どこにも送信・保存していません。";
-      return;
-    }
-    fetch(SUBMIT_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }).then(function (r) {
-      $("#complete-note").textContent = r.ok ? "回答を受け付けました。" : "送信に失敗しましたが、結果は表示されています。";
-    }).catch(function () {
-      $("#complete-note").textContent = "送信に失敗しましたが、結果は表示されています。";
-    });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     init();
     bindTransition();
     bindDemographics();
-    bindConfirm();
   });
 })();
