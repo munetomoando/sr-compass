@@ -1,13 +1,14 @@
 {
   "meta": {
-    "app_version": "0.3",
+    "app_version": "0.4-sr",
     "framing": {
       "income_anchor": "age30_gross",
       "scenarios": [
         "single_no_plan",
         "married_one_child"
       ],
-      "note": "年収はその仕事に就いた30歳頃の額面。転勤・在宅などはその仕事がずっと持つ特徴。各シナリオの家族設定でどう感じるかを率直に選んでください。"
+      "note": "年収はその仕事に就いた30歳頃の額面。転勤・在宅などはその仕事がずっと持つ特徴。各シナリオの家族設定でどう感じるかを率直に選んでください。",
+      "design": "2つの人生で同じ10組（D最適）を使い、2回目は左右と見た目の水準を入れ替える"
     },
     "attributes": {
       "income": {
@@ -17,7 +18,8 @@
           "300": "年収300万",
           "450": "年収450万",
           "600": "年収600万",
-          "750": "年収750万"
+          "750": "年収750万",
+          "900": "年収900万"
         },
         "kind": "continuous",
         "good": "max"
@@ -25,8 +27,8 @@
       "location": {
         "label": "勤務地・転勤",
         "levels": {
-          "なし": "転勤なし・地元",
-          "あり": "転勤あり・全国"
+          "なし": "転勤なし（今の地域で働き続ける）",
+          "あり": "転勤あり（全国）"
         },
         "kind": "binary",
         "good": "なし"
@@ -60,10 +62,10 @@
         "subjective": true
       },
       "stability": {
-        "label": "雇用安定性",
+        "label": "雇用の安定",
         "levels": {
-          "安定": "安定（大手・終身的）",
-          "不安定": "成長ベンチャー（不安定）"
+          "安定": "雇用が安定",
+          "不安定": "雇用が不安定（業績次第で人員整理も）"
         },
         "kind": "binary",
         "good_nominal": "安定",
@@ -87,7 +89,7 @@
       "scenario": null,
       "intent": "操作に慣れる",
       "A": {
-        "income": "450",
+        "income": "600",
         "location": "なし",
         "hours": "少",
         "remote": "可",
@@ -95,7 +97,7 @@
         "stability": "安定"
       },
       "B": {
-        "income": "450",
+        "income": "600",
         "location": "あり",
         "hours": "多",
         "remote": "不可",
@@ -108,18 +110,19 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 1,
       "intent": "トレードオフ",
       "A": {
-        "income": "600",
+        "income": "750",
         "location": "あり",
         "hours": "少",
-        "remote": "可",
-        "growth": "大",
+        "remote": "不可",
+        "growth": "小",
         "stability": "安定"
       },
       "B": {
-        "income": "750",
-        "location": "あり",
+        "income": "600",
+        "location": "なし",
         "hours": "多",
         "remote": "不可",
         "growth": "小",
@@ -131,20 +134,21 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 2,
       "intent": "トレードオフ",
       "A": {
-        "income": "300",
-        "location": "あり",
+        "income": "750",
+        "location": "なし",
         "hours": "少",
         "remote": "不可",
         "growth": "小",
         "stability": "不安定"
       },
       "B": {
-        "income": "300",
+        "income": "750",
         "location": "なし",
         "hours": "多",
-        "remote": "不可",
+        "remote": "可",
         "growth": "大",
         "stability": "安定"
       }
@@ -154,21 +158,22 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 3,
       "intent": "トレードオフ",
       "A": {
-        "income": "450",
-        "location": "なし",
+        "income": "600",
+        "location": "あり",
         "hours": "少",
         "remote": "不可",
         "growth": "大",
-        "stability": "不安定"
+        "stability": "安定"
       },
       "B": {
-        "income": "750",
-        "location": "あり",
-        "hours": "少",
+        "income": "600",
+        "location": "なし",
+        "hours": "多",
         "remote": "可",
-        "growth": "大",
+        "growth": "小",
         "stability": "安定"
       }
     },
@@ -177,21 +182,22 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 4,
       "intent": "トレードオフ",
       "A": {
-        "income": "450",
-        "location": "なし",
-        "hours": "多",
-        "remote": "不可",
-        "growth": "大",
+        "income": "750",
+        "location": "あり",
+        "hours": "少",
+        "remote": "可",
+        "growth": "小",
         "stability": "不安定"
       },
       "B": {
         "income": "300",
-        "location": "あり",
-        "hours": "多",
+        "location": "なし",
+        "hours": "少",
         "remote": "可",
-        "growth": "小",
+        "growth": "大",
         "stability": "安定"
       }
     },
@@ -200,18 +206,19 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 5,
       "intent": "トレードオフ",
       "A": {
-        "income": "300",
-        "location": "なし",
-        "hours": "少",
-        "remote": "不可",
-        "growth": "小",
-        "stability": "不安定"
-      },
-      "B": {
         "income": "450",
         "location": "あり",
+        "hours": "多",
+        "remote": "可",
+        "growth": "大",
+        "stability": "安定"
+      },
+      "B": {
+        "income": "600",
+        "location": "なし",
         "hours": "多",
         "remote": "不可",
         "growth": "大",
@@ -223,22 +230,23 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 6,
       "intent": "トレードオフ",
       "A": {
         "income": "450",
         "location": "なし",
-        "hours": "多",
-        "remote": "可",
+        "hours": "少",
+        "remote": "不可",
         "growth": "大",
         "stability": "不安定"
       },
       "B": {
-        "income": "450",
+        "income": "600",
         "location": "あり",
-        "hours": "少",
-        "remote": "可",
-        "growth": "大",
-        "stability": "安定"
+        "hours": "多",
+        "remote": "不可",
+        "growth": "小",
+        "stability": "不安定"
       }
     },
     {
@@ -246,22 +254,23 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 7,
       "intent": "トレードオフ",
       "A": {
-        "income": "600",
+        "income": "900",
         "location": "あり",
         "hours": "多",
         "remote": "不可",
         "growth": "大",
-        "stability": "不安定"
+        "stability": "安定"
       },
       "B": {
         "income": "750",
         "location": "あり",
         "hours": "少",
-        "remote": "不可",
-        "growth": "小",
-        "stability": "安定"
+        "remote": "可",
+        "growth": "大",
+        "stability": "不安定"
       }
     },
     {
@@ -269,20 +278,21 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 8,
       "intent": "トレードオフ",
       "A": {
-        "income": "600",
-        "location": "なし",
+        "income": "300",
+        "location": "あり",
         "hours": "多",
-        "remote": "不可",
+        "remote": "可",
         "growth": "大",
         "stability": "不安定"
       },
       "B": {
         "income": "300",
-        "location": "あり",
+        "location": "なし",
         "hours": "少",
-        "remote": "不可",
+        "remote": "可",
         "growth": "小",
         "stability": "安定"
       }
@@ -292,22 +302,23 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 9,
       "intent": "トレードオフ",
       "A": {
-        "income": "750",
+        "income": "600",
         "location": "なし",
         "hours": "多",
-        "remote": "可",
+        "remote": "不可",
         "growth": "小",
         "stability": "安定"
       },
       "B": {
         "income": "750",
-        "location": "あり",
+        "location": "なし",
         "hours": "多",
-        "remote": "不可",
+        "remote": "可",
         "growth": "大",
-        "stability": "安定"
+        "stability": "不安定"
       }
     },
     {
@@ -315,22 +326,23 @@
       "type": "main",
       "scored": true,
       "scenario": "A",
+      "pair": 10,
       "intent": "トレードオフ",
       "A": {
         "income": "450",
         "location": "なし",
         "hours": "少",
         "remote": "可",
-        "growth": "大",
+        "growth": "小",
         "stability": "安定"
       },
       "B": {
-        "income": "600",
+        "income": "900",
         "location": "なし",
-        "hours": "少",
+        "hours": "多",
         "remote": "不可",
-        "growth": "大",
-        "stability": "安定"
+        "growth": "小",
+        "stability": "不安定"
       }
     },
     {
@@ -338,22 +350,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 1,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "600",
+        "location": "なし",
+        "hours": "多",
+        "remote": "不可",
+        "growth": "小",
+        "stability": "不安定",
+        "income": "300"
+      },
+      "B": {
         "location": "あり",
         "hours": "少",
         "remote": "不可",
-        "growth": "大",
-        "stability": "不安定"
-      },
-      "B": {
-        "income": "600",
-        "location": "あり",
-        "hours": "多",
-        "remote": "可",
         "growth": "小",
-        "stability": "安定"
+        "stability": "安定",
+        "income": "450"
       }
     },
     {
@@ -361,22 +374,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 2,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "300",
-        "location": "なし",
-        "hours": "少",
-        "remote": "不可",
-        "growth": "小",
-        "stability": "不安定"
+        "location": "あり",
+        "hours": "多",
+        "remote": "可",
+        "growth": "大",
+        "stability": "安定",
+        "income": "450"
       },
       "B": {
-        "income": "450",
         "location": "あり",
         "hours": "少",
         "remote": "不可",
-        "growth": "大",
-        "stability": "安定"
+        "growth": "小",
+        "stability": "不安定",
+        "income": "450"
       }
     },
     {
@@ -384,22 +398,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 3,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "450",
+        "location": "なし",
+        "hours": "多",
+        "remote": "可",
+        "growth": "小",
+        "stability": "不安定",
+        "income": "300"
+      },
+      "B": {
         "location": "あり",
         "hours": "少",
         "remote": "不可",
         "growth": "大",
-        "stability": "安定"
-      },
-      "B": {
-        "income": "300",
-        "location": "なし",
-        "hours": "多",
-        "remote": "可",
-        "growth": "大",
-        "stability": "安定"
+        "stability": "不安定",
+        "income": "300"
       }
     },
     {
@@ -407,22 +422,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 4,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "450",
-        "location": "あり",
-        "hours": "少",
+        "location": "なし",
+        "hours": "多",
         "remote": "不可",
         "growth": "大",
-        "stability": "不安定"
+        "stability": "安定",
+        "income": "450"
       },
       "B": {
-        "income": "300",
-        "location": "なし",
-        "hours": "少",
-        "remote": "可",
+        "location": "あり",
+        "hours": "多",
+        "remote": "不可",
         "growth": "小",
-        "stability": "不安定"
+        "stability": "不安定",
+        "income": "900"
       }
     },
     {
@@ -430,22 +446,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 5,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "450",
-        "location": "あり",
-        "hours": "少",
-        "remote": "可",
-        "growth": "大",
-        "stability": "安定"
-      },
-      "B": {
-        "income": "750",
         "location": "なし",
         "hours": "少",
         "remote": "不可",
         "growth": "小",
-        "stability": "不安定"
+        "stability": "不安定",
+        "income": "450"
+      },
+      "B": {
+        "location": "あり",
+        "hours": "少",
+        "remote": "可",
+        "growth": "小",
+        "stability": "安定",
+        "income": "300"
       }
     },
     {
@@ -453,22 +470,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 6,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "600",
         "location": "あり",
         "hours": "多",
         "remote": "可",
-        "growth": "大",
-        "stability": "安定"
+        "growth": "小",
+        "stability": "不安定",
+        "income": "450"
       },
       "B": {
-        "income": "750",
         "location": "なし",
-        "hours": "多",
-        "remote": "不可",
-        "growth": "小",
-        "stability": "不安定"
+        "hours": "少",
+        "remote": "可",
+        "growth": "大",
+        "stability": "不安定",
+        "income": "300"
       }
     },
     {
@@ -476,22 +494,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 7,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "600",
+        "location": "あり",
+        "hours": "少",
+        "remote": "可",
+        "growth": "小",
+        "stability": "不安定",
+        "income": "450"
+      },
+      "B": {
         "location": "あり",
         "hours": "多",
         "remote": "不可",
         "growth": "小",
-        "stability": "不安定"
-      },
-      "B": {
-        "income": "450",
-        "location": "あり",
-        "hours": "少",
-        "remote": "不可",
-        "growth": "小",
-        "stability": "安定"
+        "stability": "安定",
+        "income": "600"
       }
     },
     {
@@ -499,22 +518,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 8,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "750",
         "location": "なし",
+        "hours": "少",
+        "remote": "不可",
+        "growth": "小",
+        "stability": "安定",
+        "income": "450"
+      },
+      "B": {
+        "location": "あり",
         "hours": "多",
         "remote": "不可",
         "growth": "大",
-        "stability": "不安定"
-      },
-      "B": {
-        "income": "300",
-        "location": "あり",
-        "hours": "少",
-        "remote": "可",
-        "growth": "小",
-        "stability": "不安定"
+        "stability": "不安定",
+        "income": "450"
       }
     },
     {
@@ -522,22 +542,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 9,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "750",
-        "location": "なし",
+        "location": "あり",
         "hours": "多",
         "remote": "可",
         "growth": "大",
-        "stability": "安定"
+        "stability": "不安定",
+        "income": "450"
       },
       "B": {
-        "income": "600",
         "location": "あり",
-        "hours": "少",
-        "remote": "可",
-        "growth": "大",
-        "stability": "不安定"
+        "hours": "多",
+        "remote": "不可",
+        "growth": "小",
+        "stability": "安定",
+        "income": "300"
       }
     },
     {
@@ -545,22 +566,23 @@
       "type": "main",
       "scored": true,
       "scenario": "B",
-      "intent": "トレードオフ",
+      "pair": 10,
+      "intent": "トレードオフ（aと同じ組の見た目違い）",
       "A": {
-        "income": "300",
-        "location": "あり",
+        "location": "なし",
+        "hours": "多",
+        "remote": "不可",
+        "growth": "小",
+        "stability": "不安定",
+        "income": "750"
+      },
+      "B": {
+        "location": "なし",
         "hours": "少",
         "remote": "可",
         "growth": "小",
-        "stability": "不安定"
-      },
-      "B": {
-        "income": "750",
-        "location": "なし",
-        "hours": "少",
-        "remote": "不可",
-        "growth": "大",
-        "stability": "安定"
+        "stability": "安定",
+        "income": "300"
       }
     },
     {
@@ -570,7 +592,7 @@
       "scenario": null,
       "intent": "注意チェック（Aが全優位）",
       "A": {
-        "income": "750",
+        "income": "900",
         "location": "なし",
         "hours": "少",
         "remote": "可",

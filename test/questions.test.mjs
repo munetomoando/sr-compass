@@ -27,12 +27,47 @@ test("各ブロック単独で全6属性が十分に分岐する（5〜9回）",
   }
 });
 
-test("各ブロックで income 4水準すべてが出現する", () => {
-  for (const mains of [mainsA, mainsB]) {
-    const seen = new Set();
-    for (const q of mains) { seen.add(q.A.income); seen.add(q.B.income); }
-    assert.deepEqual([...seen].sort(), ["300", "450", "600", "750"]);
+test("年収は定義済みの5水準（300〜900万）だけを使う", () => {
+  const levels = Object.keys(meta.attributes.income.levels);
+  assert.deepEqual(levels, ["300", "450", "600", "750", "900"]);
+  for (const q of [...mainsA, ...mainsB]) {
+    assert.ok(levels.includes(q.A.income) && levels.includes(q.B.income), `${q.id} の年収水準が範囲外`);
   }
+});
+
+// 設問を数値の差分ベクトルにする（年収は100万円単位、二値は良い=1）
+const GOODV = { location: "なし", hours: "少", remote: "可", growth: "大", stability: "安定" };
+const diff = q => meta.attribute_order.map(a => a === "income"
+  ? (+q.A.income - +q.B.income) / 100 : ((q.A[a] === GOODV[a]) - (q.B[a] === GOODV[a])));
+
+test("2つの人生で同じ組を使い、bはaの左右を入れ替えた見た目違い（差分は符号反転で一致）", () => {
+  for (let i = 0; i < 10; i++) {
+    const a = mainsA[i], b = mainsB[i];
+    assert.equal(a.pair, b.pair);
+    assert.deepEqual(diff(b), diff(a).map(v => (v === 0 ? 0 : -v)), `${a.id} と ${b.id} の差分が一致しない`);
+    assert.notDeepEqual(b.A, a.B, `${b.id} が ${a.id} の単純な左右入れ替えになっている（見た目も変える）`);
+  }
+});
+
+test("年収差450万円以上の組を2つ以上含む（大きな価値も測れる）", () => {
+  assert.ok(mainsA.filter(q => Math.abs(+q.A.income - +q.B.income) >= 450).length >= 2);
+});
+
+test("属性どうしの相関が強すぎない（|r|<0.5）", () => {
+  const X = mainsA.map(diff), p = X[0].length;
+  const col = j => X.map(r => r[j]);
+  const corr = (x, y) => { const mx = x.reduce((a, b) => a + b) / x.length, my = y.reduce((a, b) => a + b) / y.length;
+    let sxy = 0, sx = 0, sy = 0; x.forEach((v, i) => { sxy += (v - mx) * (y[i] - my); sx += (v - mx) ** 2; sy += (y[i] - my) ** 2; });
+    return sxy / Math.sqrt(sx * sy); };
+  for (let i = 0; i < p; i++) for (let j = i + 1; j < p; j++) {
+    const r = corr(col(i), col(j));
+    assert.ok(Math.abs(r) < 0.5, `${meta.attribute_order[i]}×${meta.attribute_order[j]} の相関 ${r.toFixed(2)}`);
+  }
+});
+
+test("属性の表記に「地元」「大手」「ベンチャー」を含まない", () => {
+  const text = JSON.stringify(meta.attributes);
+  for (const w of ["地元", "大手", "ベンチャー"]) assert.ok(!text.includes(w), `${w} が残っている`);
 });
 
 test("本番に支配ペア（トレードオフ無し）が無い", () => {

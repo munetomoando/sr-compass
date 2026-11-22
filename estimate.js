@@ -6,6 +6,9 @@
 })(this, function(){
   "use strict";
 
+  // estimate2 の既定値（研修版 v0.4）。clip は設問の年収差の最大（600万円）に合わせる。
+  const DEFAULTS = { intercept:false, penMain:0.5, penInter:0.5, clip:600 };
+
   // 小規模線形方程式 Ax=b をガウス消去で解く（A: n×n, b: n）
   function solve(A, b){
     const n=b.length, M=A.map((row,i)=>row.concat(b[i]));
@@ -137,14 +140,15 @@
   }
 
   // βマップ→MRS（万円）マップ。bInc=β_income。v0.2 §6.3 のクリップ/null処理を踏襲
-  function mrsFromBeta(order, betaMap, bInc){
+  function mrsFromBeta(order, betaMap, bInc, clip){
+    clip = clip==null ? 500 : clip;
     const out={};
     for(const a of order){
       if(a==="income") continue;
       if(!Number.isFinite(bInc) || bInc<0.02){ out[a]=null; continue; }
       let v=(betaMap[a]/bInc)*100;
       if(!Number.isFinite(v)){ out[a]=null; continue; }
-      out[a]=Math.max(-500,Math.min(500, Math.round(v/5)*5));
+      out[a]=Math.max(-clip,Math.min(clip, Math.round(v/5)*5));
     }
     return out;
   }
@@ -158,6 +162,12 @@
     const SHIFT = ["location","hours","remote","stability"];
     const ansById={}; answers.forEach(a=>ansById[a.q_id]=a);
     const mains = questions.filter(q=>q.scored);
+    // 研修版 v0.4 の既定値：左右を画面でランダムに入れ替えるので切片（A側への偏り）は置かない。
+    // 交互作用（人生による変化）への罰則は、シミュレーションで過小推定と誤検出の釣り合いを見て決めた。
+    const useIntercept = opts.intercept===undefined ? DEFAULTS.intercept : !!opts.intercept;
+    const penMain  = opts.penMain==null  ? DEFAULTS.penMain  : opts.penMain;
+    const penInter = opts.penInter==null ? DEFAULTS.penInter : opts.penInter;
+    const clip     = opts.clip==null     ? DEFAULTS.clip     : opts.clip;
 
     function fit(constrained){
       const intCols = constrained ? SHIFT : order;
@@ -167,14 +177,15 @@
         const d=designRow(meta,q);
         const s = (a.scenario||q.scenario)==="B" ? 1 : 0;
         const inter = intCols.map((attr)=> s * d[order.indexOf(attr)]);
-        X.push([1, ...d, ...inter]); y.push(a.choice==="A"?1:0);
+        X.push([...(useIntercept?[1]:[]), ...d, ...inter]); y.push(a.choice==="A"?1:0);
       }
-      const pen=[0, ...order.map(()=>0.5), ...intCols.map(()=>1.5)];
+      const pen=[...(useIntercept?[0]:[]), ...order.map(()=>penMain), ...intCols.map(()=>penInter)];
       const { beta:bf, converged } = fitLogitW(X, y, pen);
+      const off = useIntercept ? 1 : 0;
       const beta_A={}, gamma={};
-      order.forEach((a,i)=> beta_A[a]=bf[i+1]);
+      order.forEach((a,i)=> beta_A[a]=bf[off+i]);
       order.forEach(a=> gamma[a]=0);
-      intCols.forEach((attr,j)=> gamma[attr]=bf[1+order.length+j]);
+      intCols.forEach((attr,j)=> gamma[attr]=bf[off+order.length+j]);
       return { beta_A, gamma, converged };
     }
 
@@ -186,8 +197,8 @@
     const beta_A=f.beta_A, gamma=f.gamma;
     const beta_B={}; order.forEach(a=> beta_B[a]=beta_A[a]+gamma[a]);
 
-    const mrs_A=mrsFromBeta(order, beta_A, beta_A.income);
-    const mrs_B=mrsFromBeta(order, beta_B, beta_B.income);
+    const mrs_A=mrsFromBeta(order, beta_A, beta_A.income, clip);
+    const mrs_B=mrsFromBeta(order, beta_B, beta_B.income, clip);
     const delta={};
     for(const a of order){ if(a==="income") continue;
       delta[a]=(mrs_A[a]===null||mrs_B[a]===null)?null:(mrs_B[a]-mrs_A[a]); }
@@ -208,7 +219,7 @@
     const norm=m=>Math.sqrt(order.reduce((s,a)=>s+m[a]*m[a],0));
     const scale_diff = +(Math.log((norm(beta_B)+1e-9)/(norm(beta_A)+1e-9))).toFixed(3);
 
-    return { beta_A, beta_B, gamma,
+    return { beta_A, beta_B, gamma, clip,
              mrs_A_manyen:mrs_A, mrs_B_manyen:mrs_B, delta_wtp_manyen:delta,
              importance_A, importance_B, importance_rank_A:rankA, importance_rank_B:rankB,
              scale_diff, fallback_constrained:constrained, converged:f.converged };
@@ -229,7 +240,8 @@
     mains.forEach(q=>{
       const a=ansById[q.id]; if(!a) return;
       const d=designRow(meta,q);
-      let u=0; meta.attribute_order.forEach((attr,i)=> u+=est.beta[attr]*d[i]);
+      const bb = (est.beta_B && (a.scenario||q.scenario)==="B") ? est.beta_B : est.beta;
+      let u=0; meta.attribute_order.forEach((attr,i)=> u+=bb[attr]*d[i]);
       ids.push(q.id); gaps.push(Math.abs(u)); times.push(a.response_ms||0);
     });
     const zg=zscores(gaps), zt=zscores(times);
@@ -262,8 +274,8 @@
     const label={income:"年収",location:"勤務地（転勤の少なさ）",hours:"労働時間の短さ",remote:"在宅勤務",growth:"裁量・成長機会",stability:"雇用の安定性"};
     const lab = a => label[a] || (meta.attributes[a] && meta.attributes[a].label) || a;
     const dir={};
-    if(Number.isFinite(est.beta.growth)) dir.growth = est.beta.growth>=0?"裁量・成長を取りにいく傾向":"言われた業務でも安定を選ぶ傾向";
-    if(Number.isFinite(est.beta.stability)) dir.stability = est.beta.stability>=0?"雇用の安定を重視する傾向":"不安定でも成長機会を取る傾向";
+    if(Number.isFinite(est.beta.growth)) dir.growth = est.beta.growth>=0?"裁量・成長を取りにいく傾向":"言われた業務中心でも他の条件を取る傾向";
+    if(Number.isFinite(est.beta.stability)) dir.stability = est.beta.stability>=0?"雇用の安定を重視する傾向":"雇用が不安定でも他の条件を取る傾向";
     const ranked=est.importance_rank;
     const phrase=a=> (a==="growth"&&dir.growth)?`${lab(a)}（${dir.growth}）`:(a==="stability"&&dir.stability)?`${lab(a)}（${dir.stability}）`:lab(a);
     const keep=ranked.slice(0,2).map(phrase);
@@ -273,5 +285,5 @@
     return { decisive, quality:{ dominant_passed, min_response_ms, logit_count_divergence }, counts, verbal:{ text, keep, tradeable, direction:dir, label } };
   }
 
-  return { fitLogit, fitLogitW, solve, estimate, estimate2, mrsFromBeta, extras, designRow, code };
+  return { fitLogit, fitLogitW, solve, estimate, estimate2, mrsFromBeta, extras, designRow, code, DEFAULTS };
 });

@@ -170,6 +170,7 @@ footer.app-foot { text-align: center; color: var(--muted); font-size: 12px; marg
 .money-item .label{font-weight:600;}
 .money-item .val{font-size:20px;font-weight:800;color:var(--good);white-space:nowrap;}
 .money-item .val.neg{color:var(--muted);font-size:15px;}
+.money-item .val small{display:block;font-size:13px;font-weight:600;color:var(--muted);text-align:right;}
 .money-sub{font-size:12px;color:var(--muted);margin-top:8px;}
 
 /* 決定的瞬間 */

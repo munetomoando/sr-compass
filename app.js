@@ -15,6 +15,7 @@
   let cursor = 0;
   let answers = [];       // { q_id, choice, response_ms }
   let questionShownAt = 0;
+  let shownLeft = "A";    // 直前の設問で左に表示した側（記録用）
   let sessionId = "";
   let estResult = null;
   let demographics = { gender: null, grade: null };  // 任意・集計のみ
@@ -130,18 +131,22 @@
       ? "まずは練習です。どちらの求人で働きたいですか？"
       : "どちらの求人で働きたいですか？";
 
-    function card(side) {
+    // 研修版 v0.4：左右の位置による偏りを打ち消すため、提示ごとに左右をランダムに入れ替える。
+    // 見出しは画面上の位置（左＝A、右＝B）で付け、記録する choice は設問データ上の A/B のまま。
+    const sides = Math.random() < 0.5 ? ["A", "B"] : ["B", "A"];
+    shownLeft = sides[0];
+    function card(side, shownLabel) {
       const job = q[side];
       const rows = order.map(function (attrId) {
         const a = attrLine(attrId, job[attrId]);
         return '<li><span class="k">' + a.label + '</span><span class="v">' + a.value + "</span></li>";
       }).join("");
       return '<button class="job-card" data-choice="' + side + '">' +
-        '<h3>求人 ' + side + "</h3><ul>" + rows + "</ul>" +
+        '<h3>求人 ' + shownLabel + "</h3><ul>" + rows + "</ul>" +
         '<span class="choose">これで働く</span></button>';
     }
 
-    $("#choices").innerHTML = card("A") + card("B");
+    $("#choices").innerHTML = card(sides[0], "A") + card(sides[1], "B");
     $("#choices").querySelectorAll(".job-card").forEach(function (btn) {
       btn.addEventListener("click", function () { onChoose(btn.getAttribute("data-choice"), btn); });
     });
@@ -158,7 +163,7 @@
   function onChoose(choice, btn) {
     const q = SEQUENCE[cursor];
     const ms = Math.round(performance.now() - questionShownAt);
-    answers.push({ q_id: q.id, choice: choice, response_ms: ms, scenario: q.scenario || null });
+    answers.push({ q_id: q.id, choice: choice, response_ms: ms, scenario: q.scenario || null, shown_left: shownLeft });
 
     if (q.type === "main") showTradeoffFlash(q, choice);
 
@@ -216,11 +221,21 @@
     $("#progress-bar-fill").style.width = "100%";
     const E = window.ValueCompassEstimate;
     const est2 = E.estimate2(DATA.questions, META, answers);
-    const ex = E.extras(DATA.questions, META, answers, { beta: est2.beta_A, importance: est2.importance_A, importance_rank: est2.importance_rank_A, mrs_manyen: est2.mrs_A_manyen });
+    const ex = E.extras(DATA.questions, META, answers, { beta: est2.beta_A, beta_B: est2.beta_B, importance: est2.importance_A, importance_rank: est2.importance_rank_A, mrs_manyen: est2.mrs_A_manyen });
     estResult = { est2: est2, extras: ex };
     buildReveal(est2, ex);
     if (!ex.quality.dominant_passed) $("#quality-note").style.display = "block";
     show("result");
+  }
+
+  // 年額の万円を「+120万円/年（月約10万円）」の形に。上限に達したら「以上」と表示する。
+  function moneyText(v, clip){
+    const capped = clip && Math.abs(v) >= clip;
+    const monthly = Math.round(Math.abs(v) / 12);
+    const sign = v >= 0 ? "+" : "−";
+    const body = `${sign}${Math.abs(v)}万円${capped ? "以上" : ""}/年`;
+    const sub = `（月約${monthly}万円${capped ? "以上" : ""}）`;
+    return `<span class="val${v<0?" neg":""}">${body}<small>${sub}</small></span>`;
   }
 
   function mdBold(s){ return s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>"); }
@@ -236,13 +251,12 @@
 
     const moneyRows = est2.importance_rank_A.filter(a=>a!=="income").slice(0,4).map(a=>{
       const v = est2.mrs_A_manyen[a];
-      const valHtml = (v===null) ? `<span class="val neg">換算を省略</span>`
-        : (v>=0 ? `<span class="val">+${v}万円</span>` : `<span class="val neg">${v}万円</span>`);
+      const valHtml = (v===null) ? `<span class="val neg">換算を省略</span>` : moneyText(v, est2.clip);
       return `<div class="money-item"><span class="label">${label[a]}</span>${valHtml}</div>`;
     }).join("");
     const incNote = (Object.values(est2.mrs_A_manyen).every(v=>v===null))
       ? `<p class="money-sub">年収をあまり重視しなかったため、金額換算は省略しました。</p>`
-      : `<p class="money-sub">＝その条件のために、これだけの年収を諦めてもよいと考えた、という目安です。</p>`;
+      : `<p class="money-sub">＝その条件のために、これだけの年収を諦めてもよいと考えた、という目安です。20問の選択からの推定なので、±100万円程度の幅があります。細かい金額より、どの条件が大きいかに注目してください。</p>`;
 
     const dHi = ex.decisive.most_hesitated_qid, dLo = ex.decisive.fastest_qid;
     const qById = {}; DATA.questions.forEach(q=>qById[q.id]=q);
@@ -280,17 +294,20 @@
           const impDelta = a => est2.importance_B[a]-est2.importance_A[a];
           const impMovers = nonInc.slice().sort((x,z)=>Math.abs(impDelta(z))-Math.abs(impDelta(x)));
           let moverText, core;
-          if (mrsMovers.length && Math.abs(est2.delta_wtp_manyen[mrsMovers[0]])>=5){
+          // 20問からの推定では、変化がなくても±100万円程度の差が出うる（シミュレーションで確認）。
+          // そのため100万円以上の差のときだけ「上がった／下がった」と言い切り、金額は丸めて示す。
+          if (mrsMovers.length && Math.abs(est2.delta_wtp_manyen[mrsMovers[0]])>=100){
             const top = mrsMovers[0], d = est2.delta_wtp_manyen[top];
-            moverText = `子育て中のあなたは、<strong>${lab[top]}</strong>の価値が ${d>=0?"+":""}${d}万円ぶん ${d>=0?"上がりました":"下がりました"}。`;
+            const r = Math.round(Math.abs(d)/50)*50;
+            moverText = `子育て中のあなたは、<strong>${lab[top]}</strong>の価値が 年${r}万円ほど ${d>=0?"上がりました":"下がりました"}（月約${Math.round(r/12)}万円）。`;
             core = mrsMovers.slice().sort((x,z)=>Math.abs(est2.delta_wtp_manyen[x])-Math.abs(est2.delta_wtp_manyen[z])).slice(0,2);
-          } else if (Math.abs(impDelta(impMovers[0]))>=0.1){
+          } else if (Math.abs(impDelta(impMovers[0]))>=0.3){
             const top = impMovers[0], up = impDelta(top)>=0;
             moverText = `子育て中のあなたは、<strong>${lab[top]}</strong>の重みが ${up?"大きく上がりました":"下がりました"}。`
               + `（このシナリオでは年収をあまり重視しなかったため、金額換算は省略します）`;
             core = impMovers.slice().sort((x,z)=>Math.abs(impDelta(x))-Math.abs(impDelta(z))).slice(0,2);
           } else {
-            moverText = `2つの人生で、価値の重みづけに大きな差は出ませんでした。あなたの選好は人生の状況に左右されにくいようです。`;
+            moverText = `2つの人生で、価値の重みづけにはっきりした差は出ませんでした。ただし20問の選択では小さな変化までは測りきれないので、「変わらない」と決まったわけではありません。`;
             core = impMovers.slice(0,2);
           }
           const coreText = core.length ? core.map(a=>lab[a]).join("・") : "—";
