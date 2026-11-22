@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>価値観コンパス / ValueCompass</title>
+  <meta name="author" content="安藤至大 / Munetomo Ando">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-head">
+    <div class="logo">VALUE COMPASS</div>
+    <h1>価値観コンパス</h1>
+    <p class="sub">求人の二択から、あなたが大切にする働き方を読み解きます</p>
+  </header>
+
+  <main class="wrap">
+
+    <!-- 1. 導入画面 -->
+    <section id="intro" class="screen active">
+      <div class="card">
+        <h2>はじめに</h2>
+        <p>これは、2つの仮想的な求人「A / B」のどちらで働きたいかを繰り返し選んでいくアプリです（練習1問のあと、本番は<strong>2つの人生設定でそれぞれ10問ずつ＝計20問</strong>）。年収・勤務地・労働時間・在宅・裁量・安定性などの条件が同時に変わるので、「総合的にどちらがマシか」で選んでください。</p>
+        <p>あなたの選択の積み重ねから、<strong>どの条件を重視しているか</strong>、そして<strong>人生の状況によって価値観がどう変わるか</strong>を推定し、最後にまとめてお返しします。所要時間は約6〜8分です。</p>
+        <p class="framing">ご自身が30歳の頃に戻って、これから就く仕事を選ぶつもりで答えてください。年収はその仕事に就いた<strong>30歳頃の額面</strong>、転勤・在宅などは<strong>その仕事がずっと持つ特徴</strong>です。本番では<strong>2つの人生設定（独身・結婚の予定なし ／ 既婚・子ども1人）</strong>で、それぞれの設定になったつもりで率直に選んでください。</p>
+        <ul class="consent">
+          <li>回答は<strong>この端末の中だけで計算</strong>し、<strong>どこにも送信・保存しません</strong>。</li>
+          <li>氏名など、個人に関する情報は一切うかがいません。</li>
+        </ul>
+        <button id="start-btn" class="primary">始める</button>
+      </div>
+    </section>
+
+    <!-- 1b. 属性（任意）画面 -->
+    <section id="demographics" class="screen">
+      <div class="card">
+        <h2>はじめに<span class="optional-tag">任意</span></h2>
+        <p class="muted">以下は<strong>任意</strong>です。全体の傾向分析（集計）のみに使い、個人を特定する用途には使いません。答えたくない項目は「回答しない」のままで構いません。</p>
+        <div class="demo-field">
+          <span class="demo-label">性別</span>
+          <div class="demo-options" id="demo-gender">
+            <label><input type="radio" name="gender" value="男性">男性</label>
+            <label><input type="radio" name="gender" value="女性">女性</label>
+            <label><input type="radio" name="gender" value="その他">その他</label>
+            <label><input type="radio" name="gender" value="回答しない" checked>回答しない</label>
+          </div>
+        </div>
+        <div class="demo-field">
+          <label class="demo-label" for="demo-grade">学年</label>
+          <select id="demo-grade">
+            <option value="">回答しない</option>
+            <option value="学部1年">学部1年</option>
+            <option value="学部2年">学部2年</option>
+            <option value="学部3年">学部3年</option>
+            <option value="学部4年">学部4年</option>
+            <option value="大学院">大学院</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <button id="demo-next-btn" class="primary">回答を始める →</button>
+      </div>
+    </section>
+
+    <!-- 2a. シナリオ提示画面（1つ目の人生） -->
+    <section id="scenario-intro" class="screen">
+      <div class="card">
+        <p class="kicker" id="scn-kicker"></p>
+        <h2 id="scn-title"></h2>
+        <p class="lead" id="scn-desc"></p>
+        <button id="scn-begin-btn" class="primary">この人生で答える →</button>
+      </div>
+    </section>
+
+    <!-- 2b. シナリオ切替画面（2つ目の人生へ） -->
+    <section id="scenario-switch" class="screen">
+      <div class="card">
+        <p class="kicker">ここからは別の人生のあなたで</p>
+        <h2 id="switch-title"></h2>
+        <p class="lead" id="switch-desc"></p>
+        <button id="switch-begin-btn" class="primary">次の人生で答える →</button>
+      </div>
+    </section>
+
+    <!-- 2-3. 設問画面（練習・本番・支配選択を兼用） -->
+    <section id="question" class="screen">
+      <div class="progress"><span id="progress-bar-fill"></span></div>
+      <div id="q-stage">
+        <div id="q-content">
+          <div id="q-badge"></div>
+          <h2 id="q-title">どちらの求人で働きたいですか？</h2>
+          <div id="choices"></div>
+          <div id="tradeoff-flash" class="tradeoff-flash" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 練習→本番への案内画面 -->
+    <section id="transition" class="screen">
+      <div class="card transition-card">
+        <div class="transition-check">✓</div>
+        <h2>練習はここまでです</h2>
+        <p class="transition-lead">ここからが<strong>本番</strong>です。</p>
+        <p>いまの練習と<strong>同じ要領</strong>で、表示される求人 A / B のうち<br>「働きたい」と思うほうを選んでいってください。</p>
+        <p class="muted">本番は2つの人生設定で各10問＝全20問（途中に確認用の設問が1問入ります）。深く悩まず、直感で選んでかまいません。</p>
+        <button id="begin-main-btn" class="primary">本番を始める</button>
+      </div>
+    </section>
+
+    <!-- 5. 結果画面 -->
+    <section id="result" class="screen">
+      <div class="result-note">あなたの選択を読み解きました</div>
+      <div class="dots" id="reveal-dots"></div>
+      <div class="reveal-stage"><div class="reveal-card turn" id="reveal-card"></div></div>
+      <button id="reveal-next" class="primary">次の発見へ →</button>
+      <div id="quality-note" class="quality-note">注意チェックの設問で明らかに良い求人が選ばれませんでした。結果は参考程度にご覧ください。</div>
+    </section>
+
+    <!-- 6. 確認画面 -->
+    <section id="confirm" class="screen">
+      <div class="card">
+        <h2>結果の確認</h2>
+        <form id="confirm-form">
+          <label class="field-label">この結果はあなたの実感に合っていますか？</label>
+          <div class="likert">
+            <label><input type="radio" name="agreement" value="1">1</label>
+            <label><input type="radio" name="agreement" value="2">2</label>
+            <label><input type="radio" name="agreement" value="3" checked>3</label>
+            <label><input type="radio" name="agreement" value="4">4</label>
+            <label><input type="radio" name="agreement" value="5">5</label>
+          </div>
+          <div class="ends muted"><span>全く違う</span><span>とても合う</span></div>
+
+          <label class="field-label" for="free-text">結果を見て気づいたことがあれば（任意）</label>
+          <textarea id="free-text" rows="3" placeholder="例：残業を気にしていたんだと気づいた"></textarea>
+
+          <div style="margin-top:18px;">
+            <button type="submit" class="primary">終える</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 7. 送信完了 -->
+    <section id="complete" class="screen">
+      <div class="card" style="text-align:center;">
+        <h2>お疲れさまでした</h2>
+        <p>研修の動画に戻って、続きをご覧ください。</p>
+        <p id="complete-note" class="muted"></p>
+      </div>
+    </section>
+
+    <footer class="app-foot">
+      価値観コンパス / ValueCompass — v0.3 研修版 ｜ 安藤至大 (Munetomo Ando)
+    </footer>
+  </main>
+
+  <script src="estimate.js"></script>
+  <script src="radar.js"></script>
+  <script src="sequence.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
