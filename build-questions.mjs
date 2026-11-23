@@ -18,7 +18,7 @@ function rng(seed){
 
 const INCOME = ["300","450","600","750","900"];
 const META = {
-  app_version: "0.4-sr",
+  app_version: "1.5-sr",
   framing: {
     income_anchor: "age30_gross",
     scenarios: ["single_no_plan", "married_one_child"],

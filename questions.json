@@ -1,6 +1,6 @@
 {
   "meta": {
-    "app_version": "0.4-sr",
+    "app_version": "1.5-sr",
     "framing": {
       "income_anchor": "age30_gross",
       "scenarios": [
