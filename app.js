@@ -19,6 +19,8 @@
   let sessionId = "";
   let estResult = null;
   let demographics = { gender: null, grade: null };  // 任意・集計のみ
+  // 追加設問（転勤の上乗せ額の二分法）。done=false なら結果に出さない。
+  let extra = { done: false, scn: "A", hist: { A: [], B: [] } };
 
   const SCN = {
     A: { key:"single_no_plan",   title:"独身・当面は結婚の予定なし", desc:"30歳のあなた。独身で、当面は結婚の予定がありません。自分の暮らしを基準に、これから就く仕事を選んでください。正解はありません。率直に。" },
@@ -95,6 +97,84 @@
     });
     $("#scn-begin-btn").addEventListener("click", function () { renderQuestion(); show("question"); });
     $("#switch-begin-btn").addEventListener("click", function () { renderQuestion(); show("question"); });
+    $("#extra-no-btn").addEventListener("click", computeAndShowResult);
+    $("#extra-yes-btn").addEventListener("click", function () {
+      extra = { done: false, scn: "A", hist: { A: [], B: [] } };
+      showExtraScenario("A");
+    });
+    $("#extra-begin-btn").addEventListener("click", function () { renderExtraQuestion(); show("question"); });
+  }
+
+  // ===== 追加設問：転勤を引き受けるのに必要な上乗せ額 =====
+  function showExtraScenario(scn){
+    extra.scn = scn;
+    $("#extra-kicker").textContent = "追加の問い（" + (scn === "A" ? "1" : "2") + " / 2）";
+    $("#extra-title").textContent = SCN[scn].title;
+    $("#extra-desc").textContent = SCN[scn].desc;
+    show("extra-scn");
+  }
+
+  function renderExtraQuestion(){
+    const BI = window.ValueCompassBisect;
+    const scn = extra.scn, x = BI.nextAmount(extra.hist[scn]);
+    const doneCount = extra.hist.A.length + extra.hist.B.length;
+    $("#progress-bar-fill").style.width = (doneCount / (BI.STEPS * 2) * 100) + "%";
+    $("#q-badge").innerHTML = '<span class="badge">追加 ' + (doneCount + 1) + " / " + (BI.STEPS * 2) + "</span>"
+      + '<p class="muted extra-note">' + SCN[scn].title + "のあなたで。年収と転勤以外の条件は同じです。</p>";
+    $("#q-title").textContent = "どちらの求人で働きたいですか？";
+    const flash = document.getElementById("tradeoff-flash");   // 本番20問の「引き換え」表示を消す
+    if (flash) { flash.classList.remove("show"); flash.textContent = ""; }
+    // ほかの条件は固定（両求人で同じ）
+    const common = { hours: "少", remote: "不可", growth: "大", stability: "安定" };
+    const jobs = {
+      T: Object.assign({ income: String(BI.BASE + x), location: "あり" }, common),   // 転勤あり＋上乗せ
+      N: Object.assign({ income: String(BI.BASE), location: "なし" }, common)        // 転勤なし
+    };
+    const sides = Math.random() < 0.5 ? ["T", "N"] : ["N", "T"];
+    const order = META.attribute_order;
+    function card(side, shownLabel){
+      const job = jobs[side];
+      const rows = order.map(function (attrId) {
+        const def = META.attributes[attrId];
+        const v = attrId === "income" ? "年収" + job.income + "万" : def.levels[job[attrId]];
+        const diff = attrId === "income" || attrId === "location";
+        return '<li><span class="k">' + def.label + '</span><span class="v"' + (diff ? "" : ' style="font-weight:400;color:var(--muted)"') + ">" + v + "</span></li>";
+      }).join("");
+      return '<button class="job-card" data-choice="' + side + '"><h3>求人 ' + shownLabel + "</h3><ul>" + rows + "</ul>"
+        + '<span class="choose">これで働く</span></button>';
+    }
+    $("#choices").innerHTML = card(sides[0], "A") + card(sides[1], "B");
+    $("#choices").querySelectorAll(".job-card").forEach(function (btn) {
+      btn.addEventListener("click", function () { onExtraChoose(btn.getAttribute("data-choice") === "T", btn); });
+    });
+    const content = $("#q-content");
+    content.classList.remove("page-turn", "page-out");
+    void content.offsetWidth;
+    content.classList.add("page-turn");
+  }
+
+  function onExtraChoose(acceptTransfer, btn){
+    const BI = window.ValueCompassBisect;
+    extra.hist[extra.scn].push(acceptTransfer);
+    $("#choices").querySelectorAll(".job-card").forEach(function (c) {
+      c.style.pointerEvents = "none";
+      if (c !== btn) c.classList.add("dimmed");
+    });
+    if (btn) btn.classList.add("chosen");
+    const advance = function(){
+      if (BI.nextAmount(extra.hist[extra.scn]) !== null) { renderExtraQuestion(); return; }
+      if (extra.scn === "A") { showExtraScenario("B"); return; }
+      extra.done = true;
+      computeAndShowResult();
+    };
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { advance(); return; }
+    setTimeout(function () {
+      const content = $("#q-content");
+      content.classList.remove("page-turn");
+      content.classList.add("page-out");
+      setTimeout(advance, 240);
+    }, 160);
   }
   function showScenarioIntro(scn){
     $("#scn-kicker").textContent = "1つ目の人生";
@@ -177,7 +257,7 @@
 
     cursor += 1;
     const advance = function () {
-      if (cursor >= SEQUENCE.length) { computeAndShowResult(); return; }
+      if (cursor >= SEQUENCE.length) { show("extra-offer"); return; }
       if (q.type === "practice") { show("transition"); return; }
       const prev = SEQUENCE[cursor-1], next = SEQUENCE[cursor];
       if (prev && next && prev.type==="main" && next.type==="main" && prev.scenario!==next.scenario) {
@@ -273,17 +353,17 @@
     };
 
     const cards = [
-      { kicker:"DISCOVERY 1 / 6", title:"あなたの重視度コンパス",
+      { title:"あなたの重視度コンパス",
         html:`<p class="lead">${answers.filter(ans=>{const q=qById[ans.q_id];return q&&q.scored;}).length}回の選択から、各条件の重みを推定しました。外側ほど重視しています。</p><div class="radar-wrap">${radarSVG}</div>` },
-      { kicker:"DISCOVERY 2 / 6", title:"お金に換算すると",
+      { title:"お金に換算すると",
         html:`<p class="lead">あなたの選択を年収（30歳頃・額面）に換算しました。</p><div class="money">${moneyRows}</div>${incNote}` },
-      { kicker:"DISCOVERY 3 / 6", title:"決定的だった瞬間",
+      { title:"決定的だった瞬間",
         html:`<div class="moment"><div class="m-tag">いちばん悩んだ選択</div><div class="m-body">${qDesc(qById[dHi])}</div></div><div class="moment fast"><div class="m-tag">迷わず選んだ選択</div><div class="m-body">${qDesc(qById[dLo])}</div></div>` },
-      { kicker:"DISCOVERY 4 / 6", title:"譲れない線、出せる線",
+      { title:"譲れない線、出せる線",
         html:`<div class="cols"><div class="box keep"><h4>譲りにくい条件</h4><ul>${ex.verbal.keep.map(s=>`<li>${s}</li>`).join("")}</ul></div><div class="box trade"><h4>交換に出しやすい条件</h4><ul>${ex.verbal.tradeable.map(s=>`<li>${s}</li>`).join("")}</ul></div></div><p class="money-sub" style="margin-top:14px">${mdBold(ex.verbal.text)}</p>` },
-      { kicker:"DISCOVERY 5 / 6", title:"いま行ったことの種明かし",
+      { title:"いま行ったことの種明かし",
         html:`<div class="reveal-box">いま行ったのは<strong>離散選択実験（DCE）</strong>です。複数条件を同時に動かす二択を繰り返すことで、口で言う重視度ではなく<strong>実際の選択から</strong>重みを逆算しています。</div>` },
-      { kicker:"DISCOVERY 6 / 6", title:"2つの人生で変わるあなた",
+      { title:"2つの人生で変わるあなた",
         html:(function(){
           const lab = ex.verbal.label;
           const nonInc = order.filter(a=>a!=="income");
@@ -317,6 +397,23 @@
             + `<div class="box keep" style="margin-top:12px"><h4>どんな人生でも譲れない核</h4><p>${coreText}</p></div>`;
         })() }
     ];
+
+    if (extra.done) {
+      const BI = window.ValueCompassBisect;
+      const ivA = BI.interval(extra.hist.A), ivB = BI.interval(extra.hist.B);
+      const dA = BI.describe(ivA), dB = BI.describe(ivB);
+      const cmp = BI.compare(ivA, ivB);
+      const cmpText = cmp > 0 ? "子育て中のあなたのほうが、転勤を引き受けるのに<strong>より大きな上乗せ</strong>を必要としました。"
+        : cmp < 0 ? "独身のあなたのほうが、転勤を引き受けるのに<strong>より大きな上乗せ</strong>を必要としました。"
+        : "2つの人生で、必要な上乗せ額に<strong>はっきりした差は出ませんでした</strong>。";
+      const row = (who, d) => `<div class="bisect-row"><span class="who">${who}</span><span class="amt">${d.short}<small>${d.monthly}</small></span></div>`;
+      cards.push({ title:"転勤の「値段」",
+        html:`<p class="lead">年収600万円の「転勤なし」の仕事と比べて、「転勤あり」の仕事を引き受けるのに必要な上乗せ額です。</p>`
+          + `<div class="money">${row("独身のあなた", dA)}${row("子育て中のあなた", dB)}</div>`
+          + `<p class="money-sub">独身のあなたは、${dA.sentence}。子育て中のあなたは、${dB.sentence}。${cmpText}</p>`
+          + `<p class="money-sub">これは研修の問い「全国転勤ありの正社員になってほしいと言われたら、月にいくら上乗せがあれば引き受けますか？」への、あなた自身の答えです。DISCOVERY 2 の金額（20問からの推定）とは測り方が違うため、数字が一致しないことがあります。</p>` });
+    }
+    cards.forEach((c,k)=>{ c.kicker = `DISCOVERY ${k+1} / ${cards.length}`; });
 
     let i=0;
     const cardEl=$("#reveal-card"), dotsEl=$("#reveal-dots"), nextEl=$("#reveal-next");

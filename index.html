@@ -21,7 +21,7 @@
       <div class="card">
         <h2>はじめに</h2>
         <p>これは、2つの仮想的な求人「A / B」のどちらで働きたいかを繰り返し選んでいくアプリです（練習1問のあと、本番は<strong>2つの人生設定でそれぞれ10問ずつ＝計20問</strong>）。年収・勤務地・労働時間・在宅・裁量・安定性などの条件が同時に変わるので、「総合的にどちらがマシか」で選んでください。</p>
-        <p>あなたの選択の積み重ねから、<strong>どの条件を重視しているか</strong>、そして<strong>人生の状況によって価値観がどう変わるか</strong>を推定し、最後にまとめてお返しします。所要時間は約6〜8分です。</p>
+        <p>あなたの選択の積み重ねから、<strong>どの条件を重視しているか</strong>、そして<strong>人生の状況によって価値観がどう変わるか</strong>を推定し、最後にまとめてお返しします。所要時間は約6〜8分です（希望する方は、結果の前に追加の6問・約2分に答えて、より詳しい結果を見ることもできます）。</p>
         <p class="framing">ご自身が30歳の頃に戻って、これから就く仕事を選ぶつもりで答えてください。年収はその仕事に就いた<strong>30歳頃の額面</strong>、転勤・在宅などは<strong>その仕事がずっと持つ特徴</strong>です。本番では<strong>2つの人生設定（独身・当面は結婚の予定なし ／ 既婚・子ども1人）</strong>で、それぞれの設定になったつもりで率直に選んでください。</p>
         <ul class="consent">
           <li>回答は<strong>この端末の中だけで計算</strong>し、<strong>どこにも送信・保存しません</strong>。</li>
@@ -107,6 +107,29 @@
       </div>
     </section>
 
+    <!-- 4b. 追加設問の案内（結果の前に、希望者だけ） -->
+    <section id="extra-offer" class="screen">
+      <div class="card transition-card">
+        <div class="transition-check">✓</div>
+        <h2>20問、お疲れさまでした</h2>
+        <p class="transition-lead">結果を見る前に、<strong>あと6問</strong>答えますか？</p>
+        <p>追加の問いでは、<strong>「転勤ありの仕事を引き受けるには、年収がいくら上乗せされればよいか」</strong>を、あなたについて直接絞り込みます。2つの人生で3問ずつ、約2分です。</p>
+        <button id="extra-yes-btn" class="primary">あと6問（約2分）答えてから、詳しい結果を見る</button>
+        <button id="extra-no-btn" class="secondary">このまま結果を見る</button>
+      </div>
+    </section>
+
+    <!-- 4c. 追加設問：人生設定の提示 -->
+    <section id="extra-scn" class="screen">
+      <div class="card">
+        <p class="kicker" id="extra-kicker"></p>
+        <h2 id="extra-title"></h2>
+        <p class="lead" id="extra-desc"></p>
+        <p class="muted">ここでは、<strong>年収と転勤だけが違う</strong>2つの求人を比べます。ほかの条件はまったく同じです。</p>
+        <button id="extra-begin-btn" class="primary">この人生で答える →</button>
+      </div>
+    </section>
+
     <!-- 5. 結果画面 -->
     <section id="result" class="screen">
       <div class="result-note">あなたの選択を読み解きました</div>
@@ -126,13 +149,14 @@
     </section>
 
     <footer class="app-foot">
-      価値観コンパス / ValueCompass — v0.4.2 研修版 ｜ 安藤至大 (Munetomo Ando)
+      価値観コンパス / ValueCompass — v0.5 研修版 ｜ 安藤至大 (Munetomo Ando)
     </footer>
   </main>
 
   <script src="estimate.js"></script>
   <script src="radar.js"></script>
   <script src="sequence.js"></script>
+  <script src="bisect.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -52,6 +52,18 @@ button { font-family: inherit; cursor: pointer; }
   width: 100%; transition: filter .15s;
 }
 .primary:hover { filter: brightness(1.05); }
+.secondary {
+  background: transparent; color: var(--accent); border: 1px solid var(--accent);
+  font-size: 15px; font-weight: 700; padding: 12px 22px; border-radius: 10px;
+  width: 100%;
+}
+.transition-card .secondary { max-width: 320px; margin: 12px auto 0; display: block; }
+.extra-note { margin: 0 0 12px; }
+.bisect-row { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.bisect-row:last-child { border-bottom: none; }
+.bisect-row .who { color: var(--muted); font-size: 14px; }
+.bisect-row .amt { font-weight: 800; text-align: right; }
+.bisect-row .amt small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
 
 /* 進捗 */
 .progress { height: 6px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 4px 0 18px; }
