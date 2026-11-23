@@ -17,12 +17,11 @@
     const dominant = questions.find(q=>q.type==="dominant");
     const A = shuffle(questions.filter(q=>q.type==="main" && q.scenario==="A"), rnd);
     const B = shuffle(questions.filter(q=>q.type==="main" && q.scenario==="B"), rnd);
-    const bFirst = rnd() < 0.5;
-    const [first, second] = bFirst ? [B, A] : [A, B];
-    const block1 = first.slice();
+    // 研修版：独身（A）→ 既婚・子ども1人（B）の順に固定（回答者にとって自然な時間の流れ）
+    const block1 = A.slice();
     const pos = 4 + Math.floor(rnd()*3);
     block1.splice(pos, 0, dominant);
-    return [practice, ...block1, ...second];
+    return [practice, ...block1, ...B];
   }
   return { buildSequence, shuffle };
 });

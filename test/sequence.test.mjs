@@ -21,9 +21,10 @@ test("各本番設問に scenario が付き、同一シナリオは連続ブロ�
   for (let i = 10; i < 20; i++) assert.notEqual(mains[i].scenario, firstScenario);
 });
 
-test("提示順はrandで反転する（A先/B先）", () => {
-  const seqLow = S.buildSequence(data.questions, () => 0.1);
-  const seqHigh = S.buildSequence(data.questions, () => 0.9);
-  const first = s => s.filter(q => q.type === "main")[0].scenario;
-  assert.notEqual(first(seqLow), first(seqHigh));
+test("提示順は常に 独身（A）→ 既婚・子ども1人（B）", () => {
+  for (const r of [0.1, 0.5, 0.9]) {
+    const mains = S.buildSequence(data.questions, () => r).filter(q => q.type === "main");
+    assert.ok(mains.slice(0, 10).every(q => q.scenario === "A"));
+    assert.ok(mains.slice(10).every(q => q.scenario === "B"));
+  }
 });
